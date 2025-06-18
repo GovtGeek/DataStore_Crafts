@@ -9,11 +9,14 @@ local thisCharacter
 local reagentsDB, resultItemsDB, recipeCategoriesDB
 
 local DataStore, TableConcat, TableInsert, format, gsub, type = DataStore, table.concat, table.insert, format, gsub, type
-local GetProfessions, GetProfessionInfo, GetSpellInfo = GetProfessions, GetProfessionInfo, GetSpellInfo
-local C_TradeSkillUI = C_TradeSkillUI
+local GetProfessions, GetProfessionInfo = GetProfessions, GetProfessionInfo
+local C_TradeSkillUI, C_Spell = C_TradeSkillUI, C_Spell
 
 local isRetail = (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE)
-local isCata = (WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC)
+--local isCata = (WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC)
+--local isMists = (LE_EXPANSION_LEVEL_CURRENT >= LE_EXPANSION_MISTS_OF_PANDARIA)
+local hasArchaeology = (LE_EXPANSION_LEVEL_CURRENT >= LE_EXPANSION_CATACLYSM)
+local hasAdvancedProfessionInfo = (LE_EXPANSION_LEVEL_CURRENT >= LE_EXPANSION_CATACLYSM)
 
 -- *** Utility functions ***
 local bit64 = LibStub("LibBit64")
@@ -221,10 +224,11 @@ local function ScanProfessionLinks()
 	ScanProfessionInfo(prof2, 2)
 	ScanProfessionInfo(cook, 3)
 	ScanProfessionInfo(fish, 4)
-	if isRetail then
+	if hasArchaeology then
 		ScanProfessionInfo(arch, 5)
-	else
-		ScanProfessionInfo(firstAid, 5)
+	end
+	if not isRetail then
+		ScanProfessionInfo(firstAid, 6)
 	end
 	
 	thisCharacter.lastUpdate = time()
@@ -398,7 +402,7 @@ local function ScanRecipes_NonRetail()
 	local profession = char.Professions[professionIndex]
 	if not profession then return end
 	
-	if isCata then
+	if hasAdvancedProfessionInfo then
 		-- Get profession link
 		local profLink = GetTradeSkillListLink()
 		if profLink then	-- sometimes a nil value may be returned, so keep the old one if nil
@@ -442,7 +446,7 @@ local function ScanRecipes_NonRetail()
 		
 		-- Get recipeID
 		
-		if isCata then
+		if hasAdvancedProfessionInfo then
 			recipeLink = GetTradeSkillRecipeLink(i) -- add recipe link here to get recipeID
 			if recipeLink then
 				local found, _, enchantString = string.find(recipeLink, "^|%x+|H(.+)|h%[.+%]")
@@ -458,7 +462,7 @@ local function ScanRecipes_NonRetail()
 		if link then
 			itemID = tonumber(link:match("item:(%d+)"))
 			
-			if isCata then
+			if hasAdvancedProfessionInfo then
 				if itemID and recipeID then
 					local maxMade = 1
 					resultItemsDB[recipeID] = maxMade + bit64:LeftShift(itemID, 8) 	-- bits 0-7 = maxMade, bits 8+ = item id
@@ -488,7 +492,7 @@ local function ScanRecipes_NonRetail()
 				end
 
 				-- if there is a valid recipeID, save it
-				if isCata then
+				if hasAdvancedProfessionInfo then
 					craftInfo = (recipeLink and recipeID) and recipeID or ""
 				else
 					craftInfo = (link and itemID) and itemID or ""
@@ -680,12 +684,10 @@ local function _GetRecipeInfo(recipeData)
 	
 	-- local minMade = bit64:GetBits(recipeData, 7, 8)		-- bits 7-14 = minMade (8 bits)
 	-- local maxMade = bit64:GetBits(recipeData, 15, 8)	-- bits 15-22 = maxMade (8 bits)
-	
 	return color, recipeID, isLearned, recipeRank, totalRanks, minMade, maxMade
 end
 
 local function _GetRecipeInfo_NonRetail(character, profession, index)
-
 	local profIndex = character.Indices[profession]		-- Get the profession index
 	-- local prof = DataStore:GetProfession(character, profession)
 	local prof = character.Professions[profIndex]
@@ -703,7 +705,6 @@ end
 local function _IterateRecipes(profession, mainCategory, subCategory, callback)
 	-- mainCategory : category index (or 0 for all)
 	-- subCategory : sub-category index (or 0 for all)
-	
 	if not isRetail then
 		local crafts = profession.Crafts
 		if not crafts then return end			-- can be nil for gathering professions
@@ -766,23 +767,32 @@ local function _GetNumRecipesByColor(profession)
 		local color = _GetRecipeInfo(recipeData)
 		counts[color] = counts[color] + 1
 	end)
-	
-	return counts[3], counts[2], counts[1], counts[0]		-- orange, yellow, green, grey
+	--return counts[3], counts[2], counts[1], counts[0]		-- orange, yellow, green, grey
+	return counts[1], counts[3], counts[2], counts[0]		-- orange, yellow, green, grey (correct for Mists)
 end
 
 local function _IsCraftKnown(profession, spellID)
 	-- returns true if a given spell ID is known in the profession passed as first argument
 	local isKnown
-	
-	_IterateRecipes(profession, 0, 0, function(recipeData) 
-		local _, recipeID, isLearned = _GetRecipeInfo(recipeData)
-		if recipeID == spellID and isLearned then
-			isKnown = true
-			return true	-- stop iteration
-		end
-	end)
 
-	return isKnown
+	if isRetail then
+		_IterateRecipes(profession, 0, 0, function(recipeData) 
+			local _, recipeID, isLearned = _GetRecipeInfo(recipeData)
+			if recipeID == spellID and isLearned then
+				isKnown = true
+				return true	-- stop iteration
+			end
+		end)
+	else
+		_IterateRecipes(profession, 0, 0, function(color, itemID)
+			if itemID == spellID then
+				isKnown = true
+				return true	-- stop iteration
+			end
+		end)
+	end
+
+  return isKnown
 end
 
 DataStore:OnAddonLoaded(addonName, function() 
