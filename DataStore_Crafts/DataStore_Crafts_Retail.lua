@@ -705,6 +705,10 @@ end
 local function _IterateRecipes(profession, mainCategory, subCategory, callback)
 	-- mainCategory : category index (or 0 for all)
 	-- subCategory : sub-category index (or 0 for all)
+	if type(subCategory) == "function" then
+		callback = subCategory
+		subCategory = 0
+	end
 	if not isRetail then
 		local crafts = profession.Crafts
 		if not crafts then return end			-- can be nil for gathering professions
