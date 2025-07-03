@@ -719,7 +719,7 @@ local function _IterateRecipes(profession, mainCategory, subCategory, callback)
 		-- loop through recipes
 		for i = 1, #crafts do
 			-- id = itemID in vanilla, recipeID in LK
-			local color, id = strsplit("|", crafts[i])
+			local color, id = strsplit("|", crafts[i] or "|")
 
 			color = tonumber(color)
 			if color == 0 then			-- it's a header
