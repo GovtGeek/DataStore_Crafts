@@ -718,21 +718,24 @@ local function _IterateRecipes(profession, mainCategory, subCategory, callback)
 		
 		-- loop through recipes
 		for i = 1, #crafts do
-			-- id = itemID in vanilla, recipeID in LK
-			local color, id = strsplit("|", crafts[i] or "|")
+			-- Somehow the scan can set an item to nil
+			if crafts[i] then
+				-- id = itemID in vanilla, recipeID in LK
+				local color, id = strsplit("|", crafts[i] or "|")
 
-			color = tonumber(color)
-			if color == 0 then			-- it's a header
-				currentCategory = currentCategory + 1
-				-- no callback for headers
-			else
-				if (mainCategory == 0) or (currentCategory == mainCategory) then
-					id = tonumber(id)	-- it's a spellID, return a number
-					stop = callback(color, id, i)
+				color = tonumber(color)
+				if color == 0 then			-- it's a header
+					currentCategory = currentCategory + 1
+					-- no callback for headers
+				else
+					if (mainCategory == 0) or (currentCategory == mainCategory) then
+						id = tonumber(id)	-- it's a spellID, return a number
+						stop = callback(color, id, i)
+					end
+					
+					-- exit if the callback returns true
+					if stop then return end
 				end
-				
-				-- exit if the callback returns true
-				if stop then return end
 			end
 		end
 	end
@@ -767,9 +770,11 @@ local function _GetNumRecipesByColor(profession)
 	-- counts the number of orange, yellow, green and grey recipes.
 	local counts = { [0] = 0, [1] = 0, [2] = 0, [3] = 0 }
 	
-	_IterateRecipes(profession, 0, 0, function(recipeData) 
-		local color = _GetRecipeInfo(recipeData)
-		counts[color] = counts[color] + 1
+	_IterateRecipes(profession, 0, 0, function(recipeData)
+		if recipeData then
+			local color = _GetRecipeInfo(recipeData)
+			counts[color] = counts[color] + 1
+		end
 	end)
 	--return counts[3], counts[2], counts[1], counts[0]		-- orange, yellow, green, grey
 	return counts[1], counts[3], counts[2], counts[0]		-- orange, yellow, green, grey (correct for Mists)
