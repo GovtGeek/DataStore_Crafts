@@ -411,18 +411,23 @@ local function ScanRecipes_NonRetail()
 		end
 	end
 
-	-- clear storage
 	profession.Categories = profession.Categories or {}
-	wipe(profession.Categories)
 	
 	profession.Crafts = profession.Crafts or {}
 	local crafts = profession.Crafts
-	wipe(crafts)
 		
 	local reagentsInfo = {}
 	
 	profession.Cooldowns = profession.Cooldowns or {}
-	wipe(profession.Cooldowns)
+
+	-- This is important when Blizzard fundamentally changes crafts
+	-- Only needs to trigger during certain updates, not all the time
+	-- clear storage
+	--wipe(profession.Categories)
+	--wipe(crafts)
+	--wipe(profession.Cooldowns)
+
+
 	local link, recipeLink, itemID, recipeID
 	
 	for i = 1, numTradeSkills do
