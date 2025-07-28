@@ -246,10 +246,15 @@ local SkillTypeToColor = {
 
 local function ScanCooldowns()
 	local tradeskillName = GetTradeSkillLine()
-	local char = addon.ThisCharacter
-	local profession = char.Professions[tradeskillName]
-	
-	wipe(profession.Cooldowns)
+	local char = thisCharacter
+	if not char then return end -- How?
+
+	--local profession = char.Professions[tradeskillName]
+	local profession = char.Professions[char.Indices[tradeskillName]]
+
+	if profession.Cooldowns then
+		wipe(profession.Cooldowns)
+	end
 	for i = 1, GetNumTradeSkills() do
 		local skillName, skillType = GetTradeSkillInfo(i)
 		
@@ -259,7 +264,7 @@ local function ScanCooldowns()
 				-- ex: "Hexweave Cloth|86220|1533539676" expire at "now + cooldown"
 				TableInsert(profession.Cooldowns, format("%s|%d|%d", skillName, cooldown, cooldown + time()))
 				
-				addon:SendMessage("DATASTORE_PROFESSION_COOLDOWN_UPDATED")
+				DataStore:Broadcast("DATASTORE_PROFESSION_COOLDOWN_UPDATED")
 			end
 		end
 	end
@@ -546,13 +551,14 @@ local function OnTradeSkillListUpdate(self)
 	end
 end
 
-local updateCooldowns
+local updateCooldowns = true
 
 local function OnTradeSkillUpdate()
 	-- The hook in DoTradeSkill will set this flag so that we only update skills once.
 	if updateCooldowns then
+		updateCooldowns = false
 		ScanCooldowns()	-- only cooldowns need to be refreshed
-		updateCooldowns = nil
+		updateCooldowns = true
 	end	
 end
 
@@ -859,6 +865,7 @@ DataStore:OnAddonLoaded(addonName, function()
 end)
 
 DataStore:OnPlayerLogin(function()
+	addon:ListenTo("PLAYER_ENTERING_WORLD", ScanProfessionLinks)
 	addon:ListenTo("PLAYER_ALIVE", ScanProfessionLinks)
 	addon:ListenTo("TRADE_SKILL_SHOW", OnTradeSkillShow)
 	addon:ListenTo("CHAT_MSG_SKILL", OnChatMsgSkill)
