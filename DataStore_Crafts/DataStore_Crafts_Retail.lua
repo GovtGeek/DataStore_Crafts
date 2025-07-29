@@ -254,6 +254,8 @@ local function ScanCooldowns()
 
 	if profession.Cooldowns then
 		wipe(profession.Cooldowns)
+	else
+		profession.Cooldowns = {}
 	end
 	for i = 1, GetNumTradeSkills() do
 		local skillName, skillType = GetTradeSkillInfo(i)
