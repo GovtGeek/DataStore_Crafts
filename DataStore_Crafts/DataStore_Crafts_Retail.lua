@@ -5,6 +5,7 @@ June 23rd, 2009
 if not DataStore then return end
 
 local addonName, addon = ...
+local L = AddonFactory:GetLocale(addonName)
 local thisCharacter
 local reagentsDB, resultItemsDB, recipeCategoriesDB
 
@@ -216,7 +217,97 @@ local function ScanProfessionInfo(index, mainIndex)
 	-- end
 end
 
+local function ScanProfessionLinks_NonRetail()
+	local char = thisCharacter
+	if not char then return end
+
+	-- reset, in case a profession is dropped
+	char.Prof1 = nil
+	char.Prof2 = nil
+	
+	-- 1st pass, expand all categories
+	for i = GetNumSkillLines(), 1, -1 do
+		local _, isHeader = GetSkillLineInfo(i)
+		if isHeader then
+			ExpandSkillHeader(i)
+		end
+	end
+	
+	local category
+	for i = 1, GetNumSkillLines() do
+		local profName, isHeader, _, rank, _, _, maxRank = GetSkillLineInfo(i)
+		
+		if profName == "Secourisme" then
+			profName = GetSpellInfo(SPELL_ID_FIRSTAID)
+		end
+
+		if isHeader then
+			category = profName
+		else
+			if category and profName then
+				local field, mainIndex
+				--char.Professions[profName] = char.Professions[profName] or {}
+
+				-- [1] = prof 1, [2] = prof 2, [3] = cooking, [4] = fishing, [5] = archeo (retail) or first aid (classic)
+				if category == L["Professions"] then
+					field = "isPrimary"
+					
+					-- if this profession is not known yet as 
+					if not char.Prof1 then			-- if there is not "first profession" known yet ..
+						char.Prof1 = profName
+						mainIndex = 1
+					else
+						char.Prof2 = profName
+						mainIndex = 2
+					end
+					SetProfessionIndex(profName, mainIndex)
+					SetProfessionRank(mainIndex, rank, maxRank)
+				end
+				
+				
+				if category == L["Secondary Skills"] then
+					field = "isSecondary"
+					if profName == L["Cooking"] then
+						mainIndex = 3
+					end
+					if profName == L["Fishing"] then
+						mainIndex = 4
+					end
+					if profName == L["Archaeology"] then
+						mainIndex = 5
+					end
+					if profName == L["First Aid"] then
+						mainIndex = 6
+					end
+					SetProfessionIndex(profName, mainIndex)
+					SetProfessionRank(mainIndex, rank, maxRank)
+				end
+				
+				if field then
+					--print("prof: ", profName, field)
+
+					-- for all other professions, save some info
+					local char = thisCharacter
+					char.Professions[mainIndex] = char.Professions[mainIndex] or {}
+					
+					local profession = char.Professions[mainIndex]
+					profession.Name = profName
+					profession.CurrentLevelName = ""
+					-- end
+
+				end
+			end
+		end
+	end
+	
+	char.lastUpdate = time()
+end
+
 local function ScanProfessionLinks()
+	if not GetProfessions() then
+		ScanProfessionLinks_NonRetail()
+		return
+	end
 	-- firstAid is nil on retail, but valid in cata
 	local prof1, prof2, arch, fish, cook, firstAid = GetProfessions()
 
@@ -846,7 +937,7 @@ AddonFactory:OnAddonLoaded(addonName, function()
 end)
 
 AddonFactory:OnPlayerLogin(function()
-	addon:ListenTo("PLAYER_ALIVE", ScanProfessionLinks)
+	addon:ListenTo("PLAYER_ENTERING_WORLD", ScanProfessionLinks)
 	addon:ListenTo("TRADE_SKILL_SHOW", OnTradeSkillShow)
 	addon:ListenTo("CHAT_MSG_SKILL", OnChatMsgSkill)
 	addon:ListenTo("CHAT_MSG_SYSTEM", OnChatMsgSystem)
