@@ -800,7 +800,10 @@ end
 local function _IterateRecipes(profession, mainCategory, subCategory, callback)
 	-- mainCategory : category index (or 0 for all)
 	-- subCategory : sub-category index (or 0 for all)
-	
+	if type(subCategory) == "function" then
+		callback = subCategory
+		subCategory = 0
+	end
 	if not isRetail then
 		local crafts = profession.Crafts
 		if not crafts then return end			-- can be nil for gathering professions
@@ -944,4 +947,5 @@ AddonFactory:OnPlayerLogin(function()
 	addon:ListenTo("TRADE_SKILL_DATA_SOURCE_CHANGED", ScanTradeSkills)
 	addon:ListenTo("TRADE_SKILL_LIST_UPDATE", OnTradeSkillListUpdate)
 end)
+
 
