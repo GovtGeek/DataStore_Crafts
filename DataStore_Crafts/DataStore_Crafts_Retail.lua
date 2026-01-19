@@ -352,7 +352,7 @@ local function ScanCooldowns()
 				-- ex: "Hexweave Cloth|86220|1533539676" expire at "now + cooldown"
 				TableInsert(profession.Cooldowns, format("%s|%d|%d", skillName, cooldown, cooldown + time()))
 				
-				addon:SendMessage("DATASTORE_PROFESSION_COOLDOWN_UPDATED")
+				AddonFactory:Broadcast("DATASTORE_PROFESSION_COOLDOWN_UPDATED")
 			end
 		end
 	end
@@ -944,3 +944,4 @@ AddonFactory:OnPlayerLogin(function()
 	addon:ListenTo("TRADE_SKILL_DATA_SOURCE_CHANGED", ScanTradeSkills)
 	addon:ListenTo("TRADE_SKILL_LIST_UPDATE", OnTradeSkillListUpdate)
 end)
+
