@@ -1,4 +1,4 @@
-## Interface: 50501
+## Interface: 50503
 ## Title: DataStore_Crafts
 ## IconTexture: Interface\Icons\garrison_building_storehouse
 
@@ -14,3 +14,4 @@ Locale.xml
 DataStore_Crafts_Retail.lua
 API\Common.lua
 API\ProfessionSpellIDs.lua
+
