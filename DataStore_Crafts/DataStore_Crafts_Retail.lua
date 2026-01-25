@@ -476,7 +476,7 @@ local function ScanRecipes_NonRetail()
 	-- number of known entries in the current skill list including headers and categories
 	local numTradeSkills = GetNumTradeSkills()
 	local skillName, skillType, _, _, altVerb = GetTradeSkillInfo(1)	-- test the first line
-	
+
 	-- This method seems to be stable to not miss skills, or to make incomplete scans. At least in Classic.
 	if not tradeskillName or not numTradeSkills
 		or	tradeskillName == "UNKNOWN"
@@ -494,7 +494,7 @@ local function ScanRecipes_NonRetail()
 	local professionIndex = char.Indices[tradeskillName]
 	local profession = char.Professions[professionIndex]
 	if not profession then return end
-	
+
 	if hasAdvancedProfessionInfo then
 		-- Get profession link
 		local profLink = GetTradeSkillListLink()
@@ -511,7 +511,7 @@ local function ScanRecipes_NonRetail()
 	profession.Crafts = profession.Crafts or {}
 	local crafts = profession.Crafts
 	wipe(crafts)
-		
+
 	local reagentsInfo = {}
 	
 	profession.Cooldowns = profession.Cooldowns or {}
@@ -567,11 +567,10 @@ local function ScanRecipes_NonRetail()
 			end
 			
 		end
-		
 		-- Scan recipe
 		local color = SkillTypeToColor[skillType]
 		local craftInfo
-		
+
 		if color then
 			if skillType == "header" then
 				craftInfo = skillName or ""
@@ -877,11 +876,25 @@ end
 
 local function _IsCraftKnown(profession, spellID)
 	-- returns true if a given spell ID is known in the profession passed as first argument
-	local isKnown
-	
+	local isKnown = false
+
 	_IterateRecipes(profession, 0, 0, function(recipeData) 
 		local _, recipeID, isLearned = _GetRecipeInfo(recipeData)
 		if recipeID == spellID and isLearned then
+			isKnown = true
+			return true	-- stop iteration
+		end
+	end)
+
+	return isKnown
+end
+
+-- returns true if a given item ID (past Vanilla) or spell ID (Vanilla) is known in the profession passed as first argument
+local function _IsCraftKnown_NonRetail(profession, soughtID)
+	local isKnown = false
+	
+	_IterateRecipes(profession, 0, 0, function(color, itemID)
+		if itemID == soughtID then
 			isKnown = true
 			return true	-- stop iteration
 		end
@@ -906,9 +919,11 @@ AddonFactory:OnAddonLoaded(addonName, function()
 		}
 	})
 	
-	DataStore:RegisterMethod(addon, "IsCraftKnown", _IsCraftKnown)
 	if isRetail then
+		DataStore:RegisterMethod(addon, "IsCraftKnown", _IsCraftKnown)
 		DataStore:RegisterMethod(addon, "GetRecipeInfo", _GetRecipeInfo)
+	else
+		DataStore:RegisterMethod(addon, "IsCraftKnown", _IsCraftKnown_NonRetail)
 	end
 	
 	DataStore:RegisterMethod(addon, "IterateRecipes", _IterateRecipes)
