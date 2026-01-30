@@ -260,11 +260,8 @@ local function ScanProfessionLinks_NonRetail()
 						char.Prof2 = profName
 						mainIndex = 2
 					end
-					SetProfessionIndex(profName, mainIndex)
-					SetProfessionRank(mainIndex, rank, maxRank)
 				end
-				
-				
+
 				if category == L["Secondary Skills"] then
 					field = "isSecondary"
 					if profName == L["Cooking"] then
@@ -279,11 +276,11 @@ local function ScanProfessionLinks_NonRetail()
 					if profName == L["First Aid"] then
 						mainIndex = 6
 					end
-					SetProfessionIndex(profName, mainIndex)
-					SetProfessionRank(mainIndex, rank, maxRank)
 				end
 				
-				if field then
+				if field and mainIndex then
+					SetProfessionIndex(profName, mainIndex)
+					SetProfessionRank(mainIndex, rank, maxRank)
 					--print("prof: ", profName, field)
 
 					-- for all other professions, save some info
@@ -294,7 +291,6 @@ local function ScanProfessionLinks_NonRetail()
 					profession.Name = profName
 					profession.CurrentLevelName = ""
 					-- end
-
 				end
 			end
 		end
